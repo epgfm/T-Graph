@@ -56,7 +56,7 @@ def get_message_context(message, cur):
             break
         i += 1
     print rows[i]
-    return rows[:i][-10:], rows[i+1 : i+11]
+    return rows[:i][-100:], rows[i+1 : i+101]
 
 
 
@@ -96,15 +96,15 @@ def get_chatMessage_context(message, cur):
 
 
 
-    t, uid, chan, message = res[0]
+    t, uid, chan, message, mid = res[0]
     print "get_chatMessage_context LOCATE/", res[0]
-    q = "select * from chatMessages where date < '%s' and chan like '%s' order by date DESC limit 20" % (t, chan)
+    q = "select * from chatMessages where date < '%s' and chan like '%s' order by date DESC limit 100" % (t, chan)
     print q
     cur.execute(q)
     pre = cur.fetchall()
     pre = list(pre)
     pre.sort()
-    q = "select * from chatMessages where date > '%s' and chan like '%s' order by date limit 20" % (t, chan)
+    q = "select * from chatMessages where date > '%s' and chan like '%s' order by date limit 100" % (t, chan)
     print q
     cur.execute(q)
     post = cur.fetchall()

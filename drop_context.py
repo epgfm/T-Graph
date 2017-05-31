@@ -26,9 +26,9 @@ def comments_from_file(fileName):
 
 def load_full_comments(p):
     X, y = [], []
-    zerosFile = glob.glob("../Stage_1_Corpus/10-Split/*0.*-%s*" % p)[0]
+    zerosFile = glob.glob("10-Split/*0.*-%s*" % p)[0]
     zeros = comments_from_file(zerosFile)
-    onesFile = glob.glob("../Stage_1_Corpus/10-Split/*1.*-%s*" % p)[0]
+    onesFile = glob.glob("10-Split/*1.*-%s*" % p)[0]
     ones = comments_from_file(onesFile)
     y.extend([0 for v in range(len(zeros))])
     y.extend([1 for v in range(len(ones))])
