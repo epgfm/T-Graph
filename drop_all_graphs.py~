@@ -1,0 +1,143 @@
+#! /usr/bin/python -u
+
+import MySQLdb
+import os, sys, pickle, random, glob, gzip
+import argparse as ap
+import time as t
+import datetime
+import igraph
+from misc import *
+from distrib import *
+import matplotlib.pyplot as plt
+from igraph.drawing import *
+import networkx as nx
+from extract_graph import build_graph
+import json
+
+
+def locate_message(date, uid_from, channel):
+    db = MySQLdb.connect(host = "localhost", user = "ouroumov",
+                         passwd = "lolwhat", db = "try")
+    cur = db.cursor()
+    q = ("select * from chatMessages where date like %s and uid like '%s'")
+    cur.execute(q, (date, uid_from))
+                
+    rows = []
+    for r in cur.fetchall():
+        rows.append(r)
+    return rows[0]
+
+
+def get_messages(channel, start_time, end_time):
+    db = MySQLdb.connect(host = "localhost", user = "ouroumov",
+                         passwd = "lolwhat", db = "try")
+    cur = db.cursor()
+    q = ("select * from chatMessages where chan like %s " +
+         "and date >= %s and date <= %s")
+    cur.execute(q, (channel,
+                    start_time,
+                    end_time
+                   )
+                )
+    rows = []
+    for r in cur.fetchall():
+        rows.append(r)
+    return rows
+
+
+def get_abuse_messages():
+    db = MySQLdb.connect(host = "localhost", user = "ouroumov",
+                         passwd = "lolwhat", db = "so_bigbang")
+    cur = db.cursor()
+    q = ("select user_id_targeted,entity_id from abuses where entity_type like 'chatMessage' and status like '1'")
+    cur.execute(q)
+    rows = []
+    for r in cur.fetchall():
+        rows.append(r)
+    return rows
+
+
+def get_cm_so(uid, entity_id):
+    db = MySQLdb.connect(host = "localhost", user = "ouroumov",
+                         passwd = "lolwhat", db = "so_bigbang")
+    cur = db.cursor()
+    q = ("select * from chat_messages where user_id like '%s' and chat_message_id like '%s'")
+    cur.execute(q, (uid, entity_id))
+    rows = []
+    for r in cur.fetchall():
+        rows.append(r)
+    return rows    
+
+
+
+def format_json(rows):
+    out = []
+    for r in rows:
+        date, uid, chan, msg, cid = r
+        date = date.strftime(f)
+        try:
+            msg = msg.decode("utf-8")
+        except:
+            msg = msg.decode("latin-1")
+        out.append([date, uid, chan, msg, cid])
+    jsondata = json.dumps(out, sort_keys=True, indent=4, separators=(',', ': '))
+    return jsondata
+
+
+
+if __name__ == '__main__':
+
+    p = ap.ArgumentParser()
+    p.add_argument("cid")
+    args = p.parse_args()
+
+    f = '%Y-%m-%d/%H:%M:%S'
+
+    # IDENTIFICATION IS DONE ON DATE+CHAN+MID, FUCK
+
+    abuses = get_abuse_messages()
+    abuses_cm = []
+    for a in abuses:
+        abuses_cm.append(get_cm_so(a[0], a[1])) 
+
+    i = 0
+
+    for a in abuses_cm:
+        cid,uid,date,message,chan,time = a[0]
+        print a[0]
+        chan = chan.split('@')[0]
+        date_s = t.strftime(f, t.localtime(date))
+        print date_s
+        dt = datetime.datetime.fromtimestamp(date)
+        
+        delta = datetime.timedelta(hours = 3)
+        start = dt - delta
+        end = dt + delta
+
+        rows = get_messages(chan, start.strftime(f), end.strftime(f))
+
+        g = build_graph(rows, 10, 'cyril')
+        print "Nodes:", len(g.vs), "Edges:", len(g.es)
+        layout = g.layout("kk")
+
+        fname = (str(cid) + "_" + str(uid) + "_" + 
+                 "_".join(date_s.split("/")) +
+                 ".graphml")
+
+        g.save("data/" + fname)
+
+        jsondata = format_json(rows)
+        with open("data/" + fname + ".json", "w") as outfile:
+            outfile.write(jsondata)
+
+        if i >= 10:
+            break
+        i += 1
+
+
+
+
+
+
+
+
