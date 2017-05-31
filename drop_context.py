@@ -80,19 +80,27 @@ if __name__ == '__main__':
 
     for p in range(10):
         comments, labels = load_full_comments(p)
+        i = 0
+        n = len(labels)
         extra_data = []
         for c in comments:
             print "==" * 80
+            print i, n
             print "[TARGET]", c
+            print i, n
             # Run extraction of extra data for both types.
             extra_datum = extract_data(c, curtry, curbang)
+            print i, n
             pre, c, post = extra_datum
             for m in pre:
                 print m
             print c
             for m in post:
                 print m
+            print i, n
             extra_data.append(extra_datum)
+            print i, n
+            i += 1
         zdump(extra_data, "context/extra-%s.pkl.gz" % p)
 
 

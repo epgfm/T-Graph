@@ -4,3 +4,5 @@ ANT/*
 muc_log/*
 context/*
 *.pyc
+locate_errs.txt
+.notes
