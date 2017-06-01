@@ -6,3 +6,4 @@ context/*
 *.pyc
 locate_errs.txt
 .notes
+GRAPHES/*

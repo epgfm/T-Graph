@@ -3,11 +3,7 @@
 
 
 import os, glob, shutil, string, pickle, gzip
-import datetime
-
-
-def timestamp_to_date(ts):
-    return 
+import datetime, time
 
 
 def split_raw_message(raw_message):
@@ -36,7 +32,7 @@ def get_message_context(message, cur):
     cur.execute(q)
     res = cur.fetchall()
     if len(res) == 0:
-        return [], []
+        return [], [], None
     d_id = res[0][0]
     print "discussion_id: ", d_id
     # Now get the actual discussion, in chronological order
@@ -52,11 +48,11 @@ def get_message_context(message, cur):
     i = 0
     for row in rows:
         c_t, c_uid, c_text = row
-        if c_uid == uid:
+        if c_uid == uid and c_t == t: # OH JESUS FUCK
             break
         i += 1
     print rows[i]
-    return rows[:i][-100:], rows[i+1 : i+101]
+    return rows[:i][-100:], rows[i+1 : i+101], d_id
 
 
 
@@ -75,7 +71,6 @@ def get_chatMessage_context(message, cur):
     except:
         text = "%" + text.decode("latin-1").encode("utf-8") + "%"
 
-        
     # Extract target record from the table
     q = "select * from chatMessages where uid like %s and message like %s"
     print q, (uid, text)
@@ -92,9 +87,7 @@ def get_chatMessage_context(message, cur):
             with open("locate_errs.txt", "a+") as f:
                 print >> f, "get_chatMessage_context [FAIL]MULTIPLELOCATE/"
                 print >> f, q, (uid, text)
-            return [], []
-
-
+            return [], [], None
 
     t, uid, chan, message, mid = res[0]
     print "get_chatMessage_context LOCATE/", res[0]
@@ -108,13 +101,57 @@ def get_chatMessage_context(message, cur):
     print q
     cur.execute(q)
     post = cur.fetchall()
-    return pre, post
+    return pre, post, chan
     
 
 
-if __name__ == "__main__":
-    import doctest
-    doctest.testmod()
+
+def normalize_context(context):
+    ''' (context) -> context
+
+    Normalize context depending on the message type
+    The goal is to return context in a consistent format.
+    No matter the message type output of this function is
+    pre, target_message, post
+    Messages in pre and post are time, uid, msg with time format f.
+    target_message is also in that format so we can concatenate all elements
+    of the return tuple to get the history.
+
+    '''
+    f = '%Y-%m-%d/%H:%M:%S'
+    pre, target, post, source = context
+    if target[2] == 'message':
+        t_uid, t_time, t_message = target[0], target[1], target[3]
+        target_out = (time.strftime(f, time.localtime(t_time)), t_uid, t_message)
+        pre_out = []
+        for row in pre:
+            t, u, m = row
+            t = time.strftime(f, time.localtime(t))
+            pre_out.append((t, u, m))
+        post_out = []
+        for row in post:
+            t, u, m = row
+            t = time.strftime(f, time.localtime(t))
+            post_out.append((t, u, m))
+    else:
+        t_uid, t_time, t_message = target[1], target[0], target[3]
+        target_out = (time.strftime(f, time.localtime(t_time)), t_uid, t_message)
+        pre_out = []
+        for row in pre:
+            u, t, m = row[1], row[0], row[3]
+            t = t.strftime(f)
+            pre_out.append((t, u, m))
+        post_out = []
+        for row in post:
+            u, t, m = row[1], row[0], row[3]
+            t = t.strftime(f)
+            post_out.append((t, u, m))
+    return (pre_out, target_out, post_out, source)
+
+
+
+
+
 
 
 

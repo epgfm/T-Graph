@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 
 import os, glob, shutil, string, pickle, gzip, re
+import MySQLdb
 
 def unpickle(fileName):
     with open(fileName) as f:
@@ -15,6 +16,12 @@ def zload(fileName):
 def zdump(obj, fileName):
     with gzip.open(fileName, "wb") as f:
         pickle.dump(obj, f, 2)
+
+
+def get_database_cursor(db_name):
+    db = MySQLdb.connect(host = "localhost", user = "ouroumov",
+                         passwd = "lolwhat", db = db_name)
+    return db.cursor()
 
 
 
@@ -127,9 +134,42 @@ def ranges_gen(size = 10, window = 3):
 
 
 
+def get_ircslug_from_uid(cur, uid):
+    ''' (db_cursor, int) -> str
+
+    Returns the name of an user from his uid.
+
+    '''
+    q = ("select name_slug_irc,name_slug from users where user_id like '%s'" % uid)
+    cur.execute(q)
+    res = cur.fetchall()
+    if len(res) == 0:
+        return None
+    return res[0]
 
 
 
 
+
+
+def getColorCode(color):
+    if color == 'green':
+        return 92
+    if color == 'red':
+        return 91
+    if color == 'yellow':
+        return 93
+    return 99
+
+
+
+def colorString(color, string):
+    colorCode = getColorCode(color)
+    return "\033[{}m{}\033[0m".format(colorCode, string)
+
+
+
+def printColor(color, string):
+    print colorString(color, string)
 
 

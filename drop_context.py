@@ -42,15 +42,15 @@ def load_full_comments(p):
 
 def extract_message_data(c, curbang):
     t, uid, mtype, text = split_raw_message(c)
-    pre, post = get_message_context(c, curbang)
-    return pre, c, post
+    pre, post, d_id = get_message_context(c, curbang)
+    return pre, c, post, d_id
 
 
 
 def extract_chatMessage_data(c, curtry):
     t, uid, mtype, text = split_raw_message(c)
-    pre, post = get_chatMessage_context(c, curtry)
-    return pre, c, post
+    pre, post, chan = get_chatMessage_context(c, curtry)
+    return pre, c, post, chan
 
 
 
@@ -91,7 +91,7 @@ if __name__ == '__main__':
             # Run extraction of extra data for both types.
             extra_datum = extract_data(c, curtry, curbang)
             print i, n
-            pre, c, post = extra_datum
+            pre, c, post, source = extra_datum
             for m in pre:
                 print m
             print c
